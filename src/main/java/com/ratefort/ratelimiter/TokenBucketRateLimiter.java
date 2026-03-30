@@ -18,7 +18,10 @@ public class TokenBucketRateLimiter implements RateLimiter {
 
     public TokenBucketRateLimiter(ReactiveRedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
-        this.script = new DefaultRedisScript<>(new ClassPathResource("lua/token_bucket.lua"), List.class);
+        DefaultRedisScript<List> redisScript = new DefaultRedisScript<>();
+        redisScript.setLocation(new ClassPathResource("lua/token_bucket.lua"));
+        redisScript.setResultType(List.class);
+        this.script = redisScript;
     }
 
     @Override

@@ -18,7 +18,10 @@ public class SlidingWindowRateLimiter implements RateLimiter {
 
     public SlidingWindowRateLimiter(ReactiveRedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
-        this.script = new DefaultRedisScript<>(new ClassPathResource("lua/sliding_window.lua"), List.class);
+        DefaultRedisScript<List> redisScript = new DefaultRedisScript<>();
+        redisScript.setLocation(new ClassPathResource("lua/sliding_window.lua"));
+        redisScript.setResultType(List.class);
+        this.script = redisScript;
     }
 
     @Override
