@@ -1,0 +1,41 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ratefort
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cloud:
+    gateway:
+      routes:
+        - id: request_proxy
+          uri: ${DOWNSTREAM_URL:https://jsonplaceholder.typicode.com}
+          predicates:
+            - Path=/api/**
+          filters:
+            - StripPrefix=1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,gateway
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+
+ratefort:
+  rules:
+    - path: "/api/posts/**"
+      limit: 10
+      duration-seconds: 60
+      algorithm: TOKEN_BUCKET
+    - path: "/api/comments/**"
+      limit: 5
+      duration-seconds: 60
+      algorithm: SLIDING_WINDOW
