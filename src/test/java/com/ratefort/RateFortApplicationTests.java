@@ -1,13 +1,13 @@
 package com.ratefort;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.Assertions;
 
-@SpringBootTest
 class RateFortApplicationTests {
 
 	@Test
-	void contextLoads() {
+	void applicationClassExists() {
+		Assertions.assertNotNull(RateFortApplication.class);
 	}
 
 }

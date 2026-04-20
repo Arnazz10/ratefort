@@ -1,5 +1,6 @@
 package com.ratefort.gateway;
 
+import com.ratefort.audit.AuditLogService;
 import com.ratefort.config.RateLimitConfig;
 import com.ratefort.metrics.MetricsService;
 import com.ratefort.ratelimiter.RateLimitResult;
@@ -16,6 +17,7 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.net.InetSocketAddress;
 import java.util.Optional;
 
 @Slf4j
@@ -26,16 +28,19 @@ public class RateLimitingFilter implements GlobalFilter, Ordered {
     private final TokenBucketRateLimiter tokenBucketRateLimiter;
     private final SlidingWindowRateLimiter slidingWindowRateLimiter;
     private final MetricsService metricsService;
+    private final AuditLogService auditLogService;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public RateLimitingFilter(RateLimitConfig config,
                               TokenBucketRateLimiter tokenBucketRateLimiter,
                               SlidingWindowRateLimiter slidingWindowRateLimiter,
-                              MetricsService metricsService) {
+                              MetricsService metricsService,
+                              AuditLogService auditLogService) {
         this.config = config;
         this.tokenBucketRateLimiter = tokenBucketRateLimiter;
         this.slidingWindowRateLimiter = slidingWindowRateLimiter;
         this.metricsService = metricsService;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -65,6 +70,7 @@ public class RateLimitingFilter implements GlobalFilter, Ordered {
                 return chain.filter(exchange);
             } else {
                 metricsService.recordThrottle(path, rule.getAlgorithm().name());
+                auditLogService.logThrottledRequest(path, clientKey, rule.getAlgorithm().name(), result.getRetryAfter());
                 exchange.getResponse().setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
                 exchange.getResponse().getHeaders().add("Retry-After", String.valueOf(result.getRetryAfter()));
                 return exchange.getResponse().setComplete();
@@ -77,7 +83,11 @@ public class RateLimitingFilter implements GlobalFilter, Ordered {
         if (apiKey != null && !apiKey.isEmpty()) {
             return "apikey:" + apiKey;
         }
-        return "ip:" + request.getRemoteAddress().getAddress().getHostAddress();
+        InetSocketAddress remoteAddress = request.getRemoteAddress();
+        if (remoteAddress == null || remoteAddress.getAddress() == null) {
+            return "ip:unknown";
+        }
+        return "ip:" + remoteAddress.getAddress().getHostAddress();
     }
 
     @Override

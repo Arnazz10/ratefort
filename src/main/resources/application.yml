@@ -4,6 +4,16 @@ server:
 spring:
   application:
     name: ratefort
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/ratefort}
+    username: ${DB_USERNAME:ratefort}
+    password: ${DB_PASSWORD:ratefort}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -30,6 +40,10 @@ management:
       enabled: true
 
 ratefort:
+  security:
+    valid-api-keys: ${VALID_API_KEYS:my-secret-key}
+  stats:
+    flush-interval-ms: 30000
   rules:
     - path: "/api/posts/**"
       limit: 10
